@@ -3,7 +3,7 @@ import Converters from '../utils/Converters';
 import Workbook from './Workbook';
 
 export default class Spreadsheet {
-  workbook: Workbook | undefined;
+  workbook!: Workbook;
   sharedStrings: string[] = [];
 
   public static async loadFromFile(file: File) {

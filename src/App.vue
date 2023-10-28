@@ -1,6 +1,19 @@
 <template>
   <input type="file" name="excel" id="excel" @change="loadExcel" />
-  <h4 v-if="spreadsheet != null">This spreadsheet has {{ spreadsheet.workbook?.worksheets.length }} worksheets.</h4>
+  <h4 v-if="spreadsheet != null">This spreadsheet has {{ spreadsheet.workbook.worksheets.length }} worksheets.</h4>
+  <ul v-if="spreadsheet != null">
+    <li v-for="worksheet in spreadsheet.workbook.worksheets">
+      {{ worksheet.name }}
+      <ul>
+        <li v-for="row in worksheet.rows">
+          Row #{{ row.index }}
+          <ul>
+            <li v-for="cell in row.cells">{{ cell.reference }}: {{ cell.value }}</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
 </template>
 
 <script setup lang="ts">
@@ -14,7 +27,6 @@ async function loadExcel(e: Event) {
   if (target.files == null || target.files.length <= 0) return;
 
   spreadsheet.value = await Spreadsheet.loadFromFile(target.files[0]);
-  console.log(spreadsheet.value);
 }
 </script>
 
