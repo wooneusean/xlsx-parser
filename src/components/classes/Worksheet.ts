@@ -1,35 +1,51 @@
 import CollectionHelper from '../utils/CollectionHelper';
+import Constants from '../utils/Constants';
 import Workbook from './Workbook';
 
-export type WorksheetCellType = 'n' | 's';
-
 export class WorksheetCell {
-  __row: WorksheetRow;
+  _row: WorksheetRow;
   reference: string;
-  type: WorksheetCellType;
+  type: string | null;
+  serial: number | null;
   value: string;
 
   constructor(element: Element, row: WorksheetRow) {
-    this.__row = row;
+    this._row = row;
     this.reference = element.getAttribute('r') ?? '';
-    this.type = (element.getAttribute('t') ?? 'n') as WorksheetCellType;
+    this.type = element.getAttribute('t');
+    this.serial = parseInt(element.getAttribute('s') as string) ?? null;
+
+    const valueElement = CollectionHelper.getFirstOrDefault(element.getElementsByTagName('v'));
+    if (valueElement == null) {
+      this.value = '';
+      return;
+    }
+
+    if (this.serial == 6 && this.type !== 's') {
+      let date = new Date(Constants.Epoch);
+      date.setDate(date.getDate() + parseInt(valueElement.innerHTML));
+
+      this.value = date.toISOString();
+      return;
+    }
+
     if (this.type === 's') {
-      const sharedStringsIndex = parseInt(element.getElementsByTagName('v')[0].innerHTML);
-      this.value = this.__row.__worksheet.__workbook.__spreadsheet.sharedStrings[sharedStringsIndex];
+      const sharedStringsIndex = parseInt(valueElement.innerHTML);
+      this.value = this._row._worksheet._workbook._spreadsheet.sharedStrings[sharedStringsIndex];
     } else {
-      this.value = element.getElementsByTagName('v')[0].innerHTML;
+      this.value = valueElement.innerHTML;
     }
   }
 }
 
 export class WorksheetRow {
-  __worksheet: Worksheet;
+  _worksheet: Worksheet;
   index: number;
   cells: WorksheetCell[] = [];
   spans: string;
 
   constructor(element: Element, worksheet: Worksheet) {
-    this.__worksheet = worksheet;
+    this._worksheet = worksheet;
     this.index = parseInt(element.getAttribute('r') ?? '0');
     this.spans = element.getAttribute('spans') ?? '';
     const cellElements = element.getElementsByTagName('c');
@@ -40,16 +56,17 @@ export class WorksheetRow {
 }
 
 export default class Worksheet {
-  __workbook: Workbook;
+  _workbook: Workbook;
   name: string;
   sheetId: number;
   isActive: boolean = false;
   activeCellReference: string = '';
   dimensions: string = '';
   rows: WorksheetRow[] = [];
+  cells: Map<string, WorksheetCell> = new Map();
 
   constructor(workbook: Workbook, name: string, sheetId: number, document: Document) {
-    this.__workbook = workbook;
+    this._workbook = workbook;
     this.name = name;
     this.sheetId = sheetId;
 
@@ -68,8 +85,29 @@ export default class Worksheet {
       CollectionHelper.getFirstOrDefault(document.getElementsByTagName('dimension'))?.getAttribute('ref') ?? '';
 
     const rowElements = document.getElementsByTagName('row');
+
     for (const rowElement of rowElements) {
-      this.rows.push(new WorksheetRow(rowElement, this));
+      const row = new WorksheetRow(rowElement, this);
+      const rowCells = row.cells;
+      this.rows.push(row);
+      for (const cell of rowCells) {
+        this.cells.set(cell.reference, cell);
+      }
     }
+  }
+
+  public static getCellReference(reference: string): { columnRef: string; rowRef: number } {
+    const referenceMatch = /^(\w+)(\d+)$/.exec(reference);
+    if (referenceMatch == null) {
+      throw new Error('This is not a cell reference');
+    }
+
+    const columnRef = referenceMatch.groups![1];
+    const rowRef = parseInt(referenceMatch.groups![2]);
+    return { columnRef, rowRef };
+  }
+
+  at(reference: string) {
+    return this.cells.get(reference);
   }
 }

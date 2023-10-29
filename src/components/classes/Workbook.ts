@@ -4,11 +4,11 @@ import Spreadsheet from './Spreadsheet';
 import Worksheet from './Worksheet';
 
 export default class Workbook {
-  __spreadsheet: Spreadsheet;
+  _spreadsheet: Spreadsheet;
   worksheets: Worksheet[] = [];
 
   constructor(spreadsheet: Spreadsheet) {
-    this.__spreadsheet = spreadsheet;
+    this._spreadsheet = spreadsheet;
   }
 
   static async loadAsync(spreadsheet: Spreadsheet, document: Document, worksheetEntries: JSZip.JSZipObject[]) {
@@ -17,8 +17,12 @@ export default class Workbook {
     const sheets = Array.from(document.querySelectorAll('sheet'));
 
     for (const sheet of sheets) {
-      const sheetId = parseInt(sheet.getAttribute('sheetId') ?? '0');
+      const sheetRId = sheet.getAttribute('r:id');
+      if (sheetRId == null) throw new Error('This sheet does not have an ID.');
+
       const sheetName = sheet.getAttribute('name') ?? '';
+
+      const sheetId = parseInt(sheetRId.slice(3));
 
       const worksheetEntry = worksheetEntries[sheetId - 1];
 

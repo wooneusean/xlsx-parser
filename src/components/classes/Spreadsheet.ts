@@ -25,7 +25,7 @@ export default class Spreadsheet {
       if (entry.name.endsWith('sharedStrings.xml')) {
         relevantEntries.sharedStrings = entry;
       }
-      if (entry.name.includes('worksheets') && !entry.dir) {
+      if (entry.name.includes('/worksheets/') && entry.name.endsWith('.xml')) {
         relevantEntries.worksheets.push(entry);
       }
     });
