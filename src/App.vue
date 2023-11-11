@@ -1,35 +1,29 @@
 <template>
   <input type="file" name="excel" id="excel" @change="loadExcel" />
-  <h4 v-if="spreadsheet != null">This spreadsheet has {{ spreadsheet.workbook.worksheets.length }} worksheets.</h4>
-
-  <input type="text" name="cell-reference" id="cell-reference" @change="getValueAtReference" placeholder="reference, e.g A4, P701" />
-  Value at reference is: {{ referenceValue }}
-
-  <ul v-if="spreadsheet != null">
-    <li v-for="worksheet in spreadsheet.workbook.worksheets">
-      {{ worksheet.name }}
-      <ul>
-        <li v-for="row in worksheet.rows">
-          Row #{{ row.index }}
-          <ul>
-            <li v-for="cell in row.cells">{{ cell.reference }}: {{ cell.value }}</li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-  </ul>
+  <select v-if="spreadsheet != null" @change="changeSheet">
+    <template v-for="(sheet, ix) in spreadsheet.workbook.worksheets">
+      <option :value="ix">{{ sheet.name }}</option>
+    </template>
+  </select>
+  <hr />
+  <table v-if="activeWorksheet != null">
+    <tr v-for="row in activeWorksheet.rows">
+      <td v-for="cell in row.cells" :class="cell.type == null ? 'numeric' : ''">
+        {{ cell.value }}
+      </td>
+    </tr>
+  </table>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import Spreadsheet from './components/classes/Spreadsheet';
+import { Spreadsheet, Worksheet } from 'xlsx-parser.js';
 
 let spreadsheet = ref<Spreadsheet | undefined>(undefined);
-let referenceValue = ref<string>('');
+let activeWorksheet = ref<Worksheet | undefined>(undefined);
 
-function getValueAtReference(e: Event) {
-  referenceValue.value =
-    spreadsheet.value?.workbook.worksheets[0].at((e.target as HTMLInputElement).value)?.value ?? 'null';
+function changeSheet(e: Event) {
+  activeWorksheet.value = spreadsheet.value!.workbook.worksheets[parseInt((e.target! as HTMLSelectElement).value)];
 }
 
 async function loadExcel(e: Event) {
@@ -37,7 +31,26 @@ async function loadExcel(e: Event) {
   if (target.files == null || target.files.length <= 0) return;
 
   spreadsheet.value = await Spreadsheet.loadFromFile(target.files[0]);
+  activeWorksheet.value = spreadsheet.value.workbook.worksheets[0];
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.numeric {
+  text-align: right;
+}
+
+table {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: small;
+  width: 100%;
+  border-collapse: collapse;
+  border: 2px solid black;
+}
+
+th,
+td {
+  padding: 2px 4px;
+  border: 1px solid black;
+}
+</style>
