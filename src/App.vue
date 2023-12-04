@@ -7,17 +7,21 @@
   </select>
   <hr />
   <table v-if="activeWorksheet != null">
-    <tr v-for="row in activeWorksheet.rows">
-      <td v-for="cell in row.cells" :class="cell.type == null ? 'numeric' : ''">
-        {{ cell.value }}
+    <tr v-for="(_, i) in activeWorksheet.dimensions.to.row + 1">
+      <td v-for="(__, j) in activeWorksheet.dimensions.to.col + 1">
+        {{ activeWorksheet.cells[j][i] }}
       </td>
     </tr>
+    {{
+      `Total: ${activeWorksheet.dimensions.to.col}:${activeWorksheet.dimensions.to.row}`
+    }}
   </table>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Spreadsheet, Worksheet } from 'xlsx-parser.js';
+import { Spreadsheet } from './lib/Spreadsheet';
+import { Worksheet } from './lib/Worksheet';
 
 let spreadsheet = ref<Spreadsheet | undefined>(undefined);
 let activeWorksheet = ref<Worksheet | undefined>(undefined);
